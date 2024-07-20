@@ -1,0 +1,89 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage.metrics import structural_similarity as ssim
+import math
+
+def add_gaussian_noise(image, mean=0, stddev=0.1):
+  """Adds Gaussian noise to an image.
+
+  Args:
+    image: The input image.
+    mean: The mean of the Gaussian distribution (default: 0).
+    stddev: The standard deviation of the Gaussian distribution (default: 0.1).
+
+  Returns:
+    The noisy image.
+  """
+
+  noise = np.random.normal(mean, stddev, image.shape)
+  noisy_image = np.clip(image + noise, 0, 255).astype(np.uint8)
+  return noisy_image
+
+def gaussian_blur(image, kernel_size=5):
+  """Applies Gaussian blur to an image.
+
+  Args:
+    image: The input image.
+    kernel_size: The size of the Gaussian kernel (default: 5).
+
+  Returns:
+    The blurred image.
+  """
+
+  blurred_image = cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
+  return blurred_image
+
+def calculate_metrics(original_image, processed_image):
+  """Calculates PSNR, MSE, and SSIM between two images.
+
+  Args:
+    original_image: The original image.
+    processed_image: The processed image.
+
+  Returns:
+    A tuple containing PSNR, MSE, and SSIM values.
+  """
+
+  # Convert to grayscale for consistency
+  gray_original = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
+  gray_processed = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
+
+  # Calculate MSE
+  mse = np.mean((gray_original - gray_processed) ** 2)
+
+  # Calculate PSNR
+  max_pixel = 255.0
+  psnr = 20 * math.log10(max_pixel / math.sqrt(mse))
+
+  # Calculate SSIM
+  ssim_value = ssim(gray_original, gray_processed)
+
+  return psnr, mse, ssim_value
+
+# Load image
+image = cv2.imread(r"C:\Users\shubh\OneDrive\Documents\Image.jpeg")
+
+# Add Gaussian noise
+noisy_image = add_gaussian_noise(image, mean=0, stddev=0.3)
+
+# Apply Gaussian blur for denoising
+denoised_image = gaussian_blur(noisy_image, kernel_size=5)
+
+# Calculate metrics
+psnr_noisy, mse_noisy, ssim_noisy = calculate_metrics(image, noisy_image)
+psnr_denoised, mse_denoised, ssim_denoised = calculate_metrics(image, denoised_image)
+
+# Display images and print metrics
+plt.subplot(1, 3, 1), plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+plt.title('Original Image')
+plt.subplot(1, 3, 2), plt.imshow(cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB))
+plt.title(f'Noisy Image (PSNR: {psnr_noisy:.2f} dB, MSE: {mse_noisy:.2f}, SSIM: {ssim_noisy:.2f})')
+plt.subplot(1, 3, 3), plt.imshow(cv2.cvtColor(denoised_image, cv2.COLOR_BGR2RGB))
+plt.title(f'Denoised Image (PSNR: {psnr_denoised:.2f} dB, MSE: {mse_denoised:.2f}, SSIM: {ssim_denoised:.2f})')
+plt.show()
+# Print metrics in rows
+print("Metric\tNoisy Image\tDenoised Image")
+print("PSNR (dB)\t{:.2f}\t\t{:.2f}".format(psnr_noisy, psnr_denoised))
+print("MSE\t\t{:.2f}\t\t{:.2f}".format(mse_noisy, mse_denoised))
+print("SSIM\t\t{:.2f}\t\t{:.2f}".format(ssim_noisy, ssim_denoised))
